@@ -1,0 +1,1579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>QuizMaster App</title>
+    <style>
+        :root {
+            --bg-color: #090d16;
+            --card-color: #131a26;
+            --border-color: #1e293b;
+            --accent-gold: #ffc107;
+            --accent-cyan: #4dd0e1;
+            --correct-emerald: #10b981;
+            --incorrect-crimson: #ef4444;
+            --text-white: #f8fafc;
+            --text-muted: #94a3b8;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-family);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-white);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            overflow-x: hidden;
+            padding: env(safe-area-inset-top, 16px) 16px env(safe-area-inset-bottom, 16px) 16px;
+        }
+
+        /* Container centering layout */
+        .app-container {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        /* Screens styling */
+        .screen {
+            display: none;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .screen.active {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Title Logo */
+        .logo-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px 0 12px 0;
+            text-align: center;
+        }
+
+        .logo-outer {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, var(--accent-gold), var(--accent-cyan));
+            padding: 2px;
+            box-shadow: 0 8px 24px rgba(255, 193, 7, 0.2);
+            margin-bottom: 12px;
+        }
+
+        .logo-inner {
+            width: 100%;
+            height: 100%;
+            border-radius: 14px;
+            background-color: var(--card-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: 900;
+            color: var(--accent-gold);
+        }
+
+        h1.app-title {
+            font-size: 26px;
+            font-weight: 900;
+            letter-spacing: 4px;
+            color: var(--text-white);
+            margin-bottom: 4px;
+        }
+
+        .app-subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+        }
+
+        /* Card panels */
+        .card {
+            background-color: var(--card-color);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 20px;
+            width: 100%;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-title {
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 1.5px;
+            color: var(--accent-gold);
+            margin-bottom: 16px;
+            text-transform: uppercase;
+        }
+
+        /* Form elements */
+        .form-group {
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-label {
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .form-input {
+            width: 100%;
+            background-color: #0d131f;
+            border: 1.5px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px;
+            color: var(--text-white);
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-input:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 10px rgba(77, 208, 225, 0.15);
+        }
+
+        /* Buttons style */
+        .btn {
+            width: 100%;
+            height: 54px;
+            border-radius: 16px;
+            border: none;
+            background-color: var(--accent-gold);
+            color: var(--bg-color);
+            font-size: 15px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: filter 0.2s, transform 0.1s, opacity 0.2s;
+            box-shadow: 0 8px 24px rgba(255, 193, 7, 0.2);
+            text-transform: uppercase;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+            filter: brightness(0.9);
+        }
+
+        .btn-cyan {
+            background-color: var(--accent-cyan);
+            box-shadow: 0 8px 24px rgba(77, 208, 225, 0.2);
+        }
+
+        .btn:disabled {
+            background-color: var(--border-color);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* Stat rows */
+        .stats-grid {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            width: 100%;
+            margin-top: 12px;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .stat-val {
+            font-size: 26px;
+            font-weight: bold;
+            color: var(--text-white);
+        }
+
+        .stat-lbl {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-top: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Circle Progress Gauge */
+        .gauge-container {
+            position: relative;
+            width: 70px;
+            height: 70px;
+        }
+
+        .gauge-svg {
+            transform: rotate(-90deg);
+            width: 100%;
+            height: 100%;
+        }
+
+        .gauge-bg {
+            fill: none;
+            stroke: var(--border-color);
+            stroke-width: 4;
+        }
+
+        .gauge-fill {
+            fill: none;
+            stroke: var(--accent-gold);
+            stroke-width: 4;
+            stroke-linecap: round;
+            stroke-dasharray: 220;
+            stroke-dashoffset: 220;
+            transition: stroke-dashoffset 0.8s ease-out;
+        }
+
+        .gauge-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .gauge-val {
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .gauge-lbl {
+            font-size: 7px;
+            color: var(--text-muted);
+        }
+
+        /* Segment headings */
+        .section-header {
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        /* Grid selections */
+        .options-flex {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .badge-chip {
+            background-color: var(--card-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--text-white);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .badge-chip.selected {
+            background-color: var(--accent-gold);
+            border-color: var(--accent-gold);
+            color: var(--bg-color);
+        }
+
+        .grid-row-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            width: 100%;
+        }
+
+        .btn-tab {
+            background-color: var(--card-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px 4px;
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--text-white);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-tab.selected {
+            background-color: var(--accent-cyan);
+            border-color: var(--accent-cyan);
+            color: var(--bg-color);
+        }
+
+        /* Play board styles */
+        .play-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .header-chip {
+            background-color: #1e293b;
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 10px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .chip-cyan { color: var(--accent-cyan); }
+        .chip-gold { color: var(--accent-gold); }
+
+        .time-clock-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .round-clock {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: var(--card-color);
+            border: 2px solid var(--correct-emerald);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 900;
+            color: var(--correct-emerald);
+            transition: border-color 0.3s, color 0.3s;
+        }
+
+        .round-clock.warning {
+            border-color: var(--accent-gold);
+            color: var(--accent-gold);
+        }
+
+        .round-clock.critical {
+            border-color: var(--incorrect-crimson);
+            color: var(--incorrect-crimson);
+            animation: pulse-border 1s infinite alternate;
+        }
+
+        @keyframes pulse-border {
+            from { box-shadow: 0 0 4px rgba(239, 68, 68, 0.2); }
+            to { box-shadow: 0 0 14px rgba(239, 68, 68, 0.6); }
+        }
+
+        /* Progress line */
+        .progress-line-track {
+            width: 100%;
+            height: 6px;
+            background-color: #1e293b;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-line-fill {
+            width: 0%;
+            height: 100%;
+            background-color: var(--accent-cyan);
+            border-radius: 3px;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Options list */
+        .choices-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .choice-row {
+            width: 100%;
+            background-color: var(--card-color);
+            border: 1.5px solid var(--border-color);
+            border-radius: 16px;
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .choice-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .choice-badge {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background-color: var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--text-white);
+            transition: all 0.2s;
+        }
+
+        .choice-txt {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-white);
+        }
+
+        /* Choice statuses */
+        .choice-row.selected {
+            border-color: var(--accent-cyan);
+            background-color: rgba(77, 208, 225, 0.08);
+        }
+        .choice-row.selected .choice-badge {
+            background-color: var(--accent-cyan);
+            color: var(--bg-color);
+        }
+
+        .choice-row.correct {
+            border-color: var(--correct-emerald) !important;
+            background-color: rgba(16, 185, 129, 0.12) !important;
+        }
+        .choice-row.correct .choice-badge {
+            background-color: var(--correct-emerald) !important;
+            color: var(--bg-color) !important;
+        }
+
+        .choice-row.incorrect {
+            border-color: var(--incorrect-crimson) !important;
+            background-color: rgba(239, 68, 68, 0.12) !important;
+        }
+        .choice-row.incorrect .choice-badge {
+            background-color: var(--incorrect-crimson) !important;
+            color: var(--text-white) !important;
+        }
+
+        /* Fact / Explanation Panel */
+        .fact-card {
+            background-color: #1a2333;
+            border: 1px solid #2d3c54;
+            border-radius: 16px;
+            padding: 14px;
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            margin-top: 8px;
+        }
+
+        .fact-icon {
+            color: var(--accent-cyan);
+            font-size: 18px;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .fact-body {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .fact-header {
+            font-size: 11px;
+            font-weight: bold;
+            color: var(--accent-cyan);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .fact-desc {
+            font-size: 12px;
+            line-height: 1.5;
+            color: var(--text-white);
+        }
+
+        /* Results Screen Big Ring Layout */
+        .circle-result-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 16px 0;
+        }
+
+        .big-result-ring {
+            position: relative;
+            width: 160px;
+            height: 160px;
+        }
+
+        .ring-svg {
+            transform: rotate(-130deg);
+            width: 100%;
+            height: 100%;
+        }
+
+        .ring-bg {
+            fill: none;
+            stroke: var(--border-color);
+            stroke-width: 10;
+            stroke-dasharray: 260;
+        }
+
+        .ring-fill {
+            fill: none;
+            stroke-width: 10;
+            stroke-linecap: round;
+            stroke-dasharray: 260;
+            stroke-dashoffset: 260;
+            transition: stroke-dashoffset 1s ease-out;
+        }
+
+        .ring-center-content {
+            position: absolute;
+            top: 52%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .ring-score-large {
+            font-size: 32px;
+            font-weight: 900;
+            color: var(--text-white);
+        }
+
+        .ring-score-label {
+            font-size: 10px;
+            font-weight: bold;
+            color: var(--text-muted);
+            letter-spacing: 1.5px;
+        }
+
+        /* Exam overview reviews */
+        .review-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+        }
+
+        .review-scroller {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 280px;
+            overflow-y: auto;
+            border-radius: 16px;
+            padding-right: 4px;
+        }
+
+        .review-scroller::-webkit-scrollbar {
+            width: 4px;
+        }
+        .review-scroller::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .review-scroller::-webkit-scrollbar-thumb {
+            background-color: var(--border-color);
+            border-radius: 2px;
+        }
+
+        .review-card {
+            background-color: var(--card-color);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .review-card.correct { border-left: 4px solid var(--correct-emerald); }
+        .review-card.incorrect { border-left: 4px solid var(--incorrect-crimson); }
+
+        .review-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .review-category {
+            font-size: 10px;
+            font-weight: bold;
+            color: var(--text-muted);
+        }
+
+        .review-badge {
+            font-size: 9px;
+            font-weight: 900;
+            border-radius: 4px;
+            padding: 2px 6px;
+        }
+
+        .review-badge.correct {
+            background-color: rgba(16, 185, 129, 0.15);
+            color: var(--correct-emerald);
+        }
+
+        .review-badge.incorrect {
+            background-color: rgba(239, 68, 68, 0.15);
+            color: var(--incorrect-crimson);
+        }
+
+        .review-title {
+            font-size: 13px;
+            font-weight: bold;
+            line-height: 1.4;
+            color: var(--text-white);
+        }
+
+        .review-choice-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .review-choice-item.wrong-pick {
+            color: var(--incorrect-crimson);
+        }
+
+        .review-choice-item.correct-pick {
+            color: var(--correct-emerald);
+        }
+
+        .review-bullet {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+        .review-bullet.wrong-pick { background-color: var(--incorrect-crimson); }
+        .review-bullet.correct-pick { background-color: var(--correct-emerald); }
+
+        /* Animations */
+        .fade-in {
+            animation: fadeInAnim 0.3s forwards;
+        }
+
+        @keyframes fadeInAnim {
+            from { opacity: 0; transform: scale(0.97); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+
+    <!-- 1. SCREEN: LOGIN -->
+    <div id="screen-login" class="screen active">
+        <div class="logo-container">
+            <div class="logo-outer">
+                <div class="logo-inner">?</div>
+            </div>
+            <h1 class="app-title">QUIZMASTER</h1>
+            <p class="app-subtitle">ENTER THE INTELLECTUAL SANCTUM</p>
+        </div>
+
+        <div class="card">
+            <p class="card-title">USER CREDENTIALS</p>
+            
+            <div class="form-group">
+                <label class="form-label" for="login-username">Username or Email</label>
+                <input class="form-input" type="text" id="login-username" placeholder="Enter commander handle" autocomplete="off" value="QuizExplorer">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 24px;">
+                <label class="form-label" for="login-password">Access Code / Password</label>
+                <input class="form-input" type="password" id="login-password" placeholder="••••••••" value="123456">
+            </div>
+
+            <button class="btn" id="btn-login">
+                <span>AUTHENTICATE</span>
+                <span style="font-size: 14px;">⚡</span>
+            </button>
+        </div>
+    </div>
+
+
+    <!-- 2. SCREEN: HOME (DASHBOARD) -->
+    <div id="screen-home" class="screen">
+        <div class="logo-container" style="padding-top: 12px; padding-bottom: 0;">
+            <p class="app-subtitle" style="letter-spacing: 2px;">WELCOME COMMANDER,</p>
+            <h1 id="user-display-name" class="app-title" style="font-size: 20px; letter-spacing: 1.5px; color: var(--accent-cyan);">QUIZEXPLORER</h1>
+        </div>
+
+        <!-- Lifetime stats console -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <p class="card-title">LIFETIME PANEL</p>
+                <p id="btn-clear-stats" style="font-size: 10px; font-weight: bold; color: var(--incorrect-crimson); cursor: pointer;">CLEAR HISTORY</p>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span id="stat-played" class="stat-val">0</span>
+                    <span class="stat-lbl">Played</span>
+                </div>
+
+                <div class="gauge-container">
+                    <svg class="gauge-svg" viewBox="0 0 80 80">
+                        <circle class="gauge-bg" cx="40" cy="40" r="35" />
+                        <circle id="stat-accuracy-fill" class="gauge-fill" cx="40" cy="40" r="35" />
+                    </svg>
+                    <div class="gauge-text">
+                        <span id="stat-accuracy-text" class="gauge-val">0%</span>
+                        <span class="gauge-lbl">Accuracy</span>
+                    </div>
+                </div>
+
+                <div class="stat-item">
+                    <span id="stat-correct" class="stat-val" style="color: var(--accent-cyan);">0</span>
+                    <span class="stat-lbl">Answers</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Category Chip select -->
+        <p class="section-header">Select Category</p>
+        <div class="options-flex" id="categories-container">
+            <!-- Rendered in JS -->
+        </div>
+
+        <!-- Difficulty selection -->
+        <p class="section-header">Difficulty level</p>
+        <div class="grid-row-4">
+            <div class="btn-tab selected" data-diff="Any">Any</div>
+            <div class="btn-tab" data-diff="Easy">Easy</div>
+            <div class="btn-tab" data-diff="Medium">Medium</div>
+            <div class="btn-tab" data-diff="Hard">Hard</div>
+        </div>
+
+        <!-- Quiz Length choice -->
+        <p class="section-header">Questions Count</p>
+        <div style="display: flex; gap: 8px; width: 100%;">
+            <div class="btn-tab selected" style="flex: 1;" data-len="5">5 Elements</div>
+            <div class="btn-tab" style="flex: 1;" data-len="10">10 Elements</div>
+            <div class="btn-tab" style="flex: 1;" data-len="15">15 Elements</div>
+        </div>
+
+        <button class="btn" style="margin-top: 10px;" id="btn-launch-quiz">
+            <span>LAUNCH MISSION</span>
+        </button>
+    </div>
+
+
+    <!-- 3. SCREEN: PLAYING (ACTIVE GAME) -->
+    <div id="screen-playing" class="screen">
+        <div class="play-header">
+            <span class="header-chip chip-cyan" id="play-category-badge">Cosmos & Science</span>
+            <span class="header-chip chip-gold" id="play-difficulty-badge">DIFFICULTY: EASY</span>
+        </div>
+
+        <div class="time-clock-container">
+            <div>
+                <h2 id="question-progress-text" style="font-size: 18px; font-weight: 900;">QUESTION 1 OF 10</h2>
+                <p style="font-size: 11px; color: var(--text-muted);">Keep sharp, choose carefully</p>
+            </div>
+            <div class="round-clock" id="timer-clock">15</div>
+        </div>
+
+        <div class="progress-line-track">
+            <div class="progress-line-fill" id="progress-line"></div>
+        </div>
+
+        <!-- Question container -->
+        <div class="card" style="border-radius: 20px;">
+            <p id="playing-question-text" style="font-size: 16px; font-weight: bold; color: var(--text-white); line-height: 1.5;">Question text goes here?</p>
+        </div>
+
+        <!-- Option selection list -->
+        <div class="choices-list" id="choices-container">
+            <!-- Option list items rendered in JS -->
+        </div>
+
+        <!-- Dynamic Sliding Wisdom Panel -->
+        <div class="fact-card" id="explanation-card" style="display: none;">
+            <div class="fact-icon">ℹ</div>
+            <div class="fact-body">
+                <span class="fact-header">DID YOU KNOW?</span>
+                <p class="fact-desc" id="explanation-text">Explanation text will describe the interesting trivia backing this answer choice.</p>
+            </div>
+        </div>
+
+        <!-- Next button slider control -->
+        <button class="btn btn-cyan" id="btn-next-question" disabled>
+            <span id="btn-next-text">NEXT CHALLENGE</span>
+            <span style="font-size: 16px;">➔</span>
+        </button>
+    </div>
+
+
+    <!-- 4. SCREEN: RESULTS SUMMARY -->
+    <div id="screen-results" class="screen">
+        <div class="logo-container" style="padding-top: 12px; padding-bottom: 0;">
+            <h2 id="result-grade-phrase" style="font-size: 18px; font-weight: 900; color: var(--accent-gold); text-align: center;">UNSTOPPABLE MASTERMIND! 🌟</h2>
+            <p id="result-grade-subtext" style="font-size: 12px; color: var(--text-muted); text-align: center; margin-top: 4px;">You answered every single query flawlessly!</p>
+        </div>
+
+        <!-- success Rate circle chart gauge -->
+        <div class="circle-result-container">
+            <div class="big-result-ring">
+                <svg class="ring-svg" viewBox="0 0 100 100">
+                    <circle class="ring-bg" cx="50" cy="50" r="41" />
+                    <circle id="result-ring-fill" class="ring-fill" cx="50" cy="50" r="41" stroke="url(#accent-gradient)" />
+                    <!-- Gradient definitions -->
+                    <defs>
+                        <linearGradient id="accent-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="var(--accent-gold)" />
+                            <stop offset="50%" stop-color="var(--accent-cyan)" />
+                            <stop offset="100%" stop-color="var(--correct-emerald)" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <div class="ring-center-content">
+                    <span class="ring-score-large" id="result-score-ratio">10 / 10</span>
+                    <span class="ring-score-label">SUCCESS RATE</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Review Header -->
+        <div class="review-header">
+            <span class="section-header" style="color: var(--accent-gold);">DETAILED EXAM REVIEW</span>
+            <span style="font-size: 11px; color: var(--text-muted);">Scroll to review</span>
+        </div>
+
+        <!-- Review cards scroll box container -->
+        <div class="review-scroller" id="reviews-list-container">
+            <!-- Review items dynamically populated in JS -->
+        </div>
+
+        <button class="btn" style="margin-top: 8px;" id="btn-restart-quiz">
+            <span>PLAY ANOTHER MISSION</span>
+        </button>
+    </div>
+
+</div>
+
+<!-- Interactive Quiz Data and Engine Script -->
+<script>
+    // 1. Trivia Questions Data Repository
+    const categories = [
+        "Cosmos & Science",
+        "Global Geography",
+        "World History",
+        "Future Tech",
+        "Pop Culture",
+        "Mind Riddles"
+    ];
+
+    const allQuestions = [
+        // Cosmos & Science
+        {
+            id: 1,
+            text: "Which major galaxy is the closest neighbor to our Milky Way?",
+            options: ["Andromeda Galaxy", "Triangulum Galaxy", "Sombrero Galaxy", "Messier 87"],
+            correctOptionIndex: 0,
+            category: "Cosmos & Science",
+            difficulty: "Easy",
+            explanation: "Andromeda is the closest major galaxy to the Milky Way, situated approximately 2.5 million light-years away."
+        },
+        {
+            id: 2,
+            text: "What is the boundary surrounding a black hole from which nothing, not even light, can escape?",
+            options: ["Singularity", "Accretion Disk", "Event Horizon", "Schwarzschild Limit"],
+            correctOptionIndex: 2,
+            category: "Cosmos & Science",
+            difficulty: "Medium",
+            explanation: "The Event Horizon is the theoretical threshold around a black hole where the escape velocity exceeds the speed of light."
+        },
+        {
+            id: 3,
+            text: "What subatomic particle is famously referred to as the 'God Particle'?",
+            options: ["Higgs Boson", "Neutrino", "Quark", "Dark Photon"],
+            correctOptionIndex: 0,
+            category: "Cosmos & Science",
+            difficulty: "Medium",
+            explanation: "The Higgs Boson is responsible for giving mass to other fundamental particles, giving structure to the universe."
+        },
+        {
+            id: 4,
+            text: "What is the primary engine fueling nuclear fusion inside our Sun?",
+            options: ["Fission of Uranium", "Fusion of Hydrogen into Helium", "Combustion of Solar Plasma", "Gravitational Collapse"],
+            correctOptionIndex: 1,
+            category: "Cosmos & Science",
+            difficulty: "Easy",
+            explanation: "The sun fuses four hydrogen protons into a single helium-4 nucleus, converting mass differences into radiant electromagnetic energy."
+        },
+        {
+            id: 5,
+            text: "Which quantum phenomenon allows a particle to exist in multiple states simultaneously until measured?",
+            options: ["Quantum Entanglement", "Superposition", "Heisenberg Uncertainty", "Wave Tunneling"],
+            correctOptionIndex: 1,
+            category: "Cosmos & Science",
+            difficulty: "Hard",
+            explanation: "Superposition is the principle that a physical system exists in a linear combination of multiple states until measurement collapses it."
+        },
+        {
+            id: 6,
+            text: "How long does it take for light from the Sun to travel to Earth?",
+            options: ["About 8 seconds", "About 8 minutes", "About 8 hours", "Instantly"],
+            correctOptionIndex: 1,
+            category: "Cosmos & Science",
+            difficulty: "Easy",
+            explanation: "Light travels at 299,792 km/s. At an average distance of 149.6 million km, solar light takes roughly 8 minutes and 20 seconds to reach Earth."
+        },
+
+        // Global Geography
+        {
+            id: 7,
+            text: "Which country contains the largest portion of the Amazon Rainforest?",
+            options: ["Peru", "Colombia", "Venezuela", "Brazil"],
+            correctOptionIndex: 3,
+            category: "Global Geography",
+            difficulty: "Easy",
+            explanation: "Brazil holds around 60% of the Amazon basin, making it the primary guardian of the world's largest rain forest."
+        },
+        {
+            id: 8,
+            text: "What is the deepest known location on Earth's crust?",
+            options: ["Java Trench", "Puerto Rico Trench", "Challenger Deep", "Sunda Deep"],
+            correctOptionIndex: 2,
+            category: "Global Geography",
+            difficulty: "Medium",
+            explanation: "Challenger Deep, located in the Mariana Trench in the western Pacific Ocean, plummets to a depth of nearly 11,000 meters (36,000 feet)."
+        },
+        {
+            id: 9,
+            text: "Which African country is completely surrounded by South Africa?",
+            options: ["Eswatini", "Lesotho", "Botswana", "Namibia"],
+            correctOptionIndex: 1,
+            category: "Global Geography",
+            difficulty: "Hard",
+            explanation: "Lesotho is a high-altitude, landlocked nation forming an independent enclave fully inside the boundaries of South Africa."
+        },
+        {
+            id: 10,
+            text: "What is the capital of Australia?",
+            options: ["Sydney", "Melbourne", "Canberra", "Brisbane"],
+            correctOptionIndex: 2,
+            category: "Global Geography",
+            difficulty: "Easy",
+            explanation: "Canberra was selected in 1908 as a compromise capital city between competing rivals Sydney and Melbourne."
+        },
+        {
+            id: 11,
+            text: "Which dry desert undergoes massive seasonal blooms, transforming into a sea of wildflowers?",
+            options: ["Atacama Desert", "Sahara Desert", "Gobi Desert", "Mojave Desert"],
+            correctOptionIndex: 0,
+            category: "Global Geography",
+            difficulty: "Medium",
+            explanation: "When rain does rarely fall on the Chilean Atacama, dormant seeds bloom in a stunning vibrant phenomenon."
+        },
+        {
+            id: 12,
+            text: "Which strait separates the southern tip of Spain from Morocco?",
+            options: ["Strait of Malacca", "Strait of Gibraltar", "Strait of Hormuz", "Bosphorus Strait"],
+            correctOptionIndex: 1,
+            category: "Global Geography",
+            difficulty: "Easy",
+            explanation: "The Strait of Gibraltar connects the Atlantic Ocean to the Mediterranean Sea and separates Europe from Africa."
+        },
+
+        // World History
+        {
+            id: 13,
+            text: "Which empire built the legendary historical complex of Machu Picchu?",
+            options: ["Aztec Empire", "Mayan Empire", "Inca Empire", "Olmec Civilization"],
+            correctOptionIndex: 2,
+            category: "World History",
+            difficulty: "Easy",
+            explanation: "Machu Picchu is an extraordinary 15th-century Inca citadel built high on a mountain ridge in Peru."
+        },
+        {
+            id: 14,
+            text: "What historic event triggered the start of the Great Depression in 1929?",
+            options: ["The Wall Street Stock Market Crash", "The Treaty of Versailles", "The Dust Bowl Storms", "The collapse of the Bank of England"],
+            correctOptionIndex: 0,
+            category: "World History",
+            difficulty: "Medium",
+            explanation: "The abrupt collapse of US stock prices on 'Black Tuesday' marked the beginning of a decade-long economic depression."
+        },
+        {
+            id: 15,
+            text: "Who was the first Emperor of the unified Roman Empire?",
+            options: ["Julius Caesar", "Nero", "Marcus Aurelius", "Augustus Caesar"],
+            correctOptionIndex: 3,
+            category: "World History",
+            difficulty: "Hard",
+            explanation: "Born Octavian, Augustus Caesar became the first formal Emperor in 27 BC, establishing Pax Romana."
+        },
+        {
+            id: 16,
+            text: "In what year did the Berlin Wall fall, leading to the reunification of Germany?",
+            options: ["1985", "1989", "1991", "1993"],
+            correctOptionIndex: 1,
+            category: "World History",
+            difficulty: "Medium",
+            explanation: "The Berlin Wall was dismantled in November 1989, precipitating the collapse of communist divisions in Europe."
+        },
+        {
+            id: 17,
+            text: "Which pharaoh's undisturbed tomb was discovered by Howard Carter in 1922?",
+            options: ["Ramesses II", "King Tutankhamun", "Akhenaten", "Cleopatra"],
+            correctOptionIndex: 1,
+            category: "World History",
+            difficulty: "Easy",
+            explanation: "King Tutankhamun's tomb contained pristine treasures, yielding unprecedented insights into ancient Egypt."
+        },
+        {
+            id: 18,
+            text: "What was the purpose of the historic Code of Hammurabi?",
+            options: ["A code of maritime exploration", "One of the earliest written legal codes", "A collection of ancient hymns", "Defensive battle guidelines"],
+            correctOptionIndex: 1,
+            category: "World History",
+            difficulty: "Hard",
+            explanation: "Established in Babylon around 1754 BC, Hammurabi's Code dealed with commercial and physical contract rulings."
+        },
+
+        // Future Tech
+        {
+            id: 19,
+            text: "What fundamental unit is used in quantum computing instead of physical bits?",
+            options: ["Trit", "Qubit", "Quantum Node", "Super-gate"],
+            correctOptionIndex: 1,
+            category: "Future Tech",
+            difficulty: "Easy",
+            explanation: "Qubits are quantum bits that exhibit superposition, expressing multiple combinations of states simultaneously."
+        },
+        {
+            id: 20,
+            text: "What major advantage does nuclear fusion power offer over nuclear fission?",
+            options: ["Zero high-level radioactive waste", "It absorbs carbon emissions", "Easier and cheaper to build today", "It creates portable fuel cells"],
+            correctOptionIndex: 0,
+            category: "Future Tech",
+            difficulty: "Medium",
+            explanation: "Nuclear fusion releases tremendous clean energy by combining light nuclei, creating virtually no radioactive waste."
+        },
+        {
+            id: 21,
+            text: "Which of the following describes the technology of Neuralink?",
+            options: ["An AI chatbot simulator", "A high-bandwidth brain-computer interface", "A biometric security scanner", "A virtual reality gaming glove"],
+            correctOptionIndex: 1,
+            category: "Future Tech",
+            difficulty: "Easy",
+            explanation: "Neuralink builds fully implantable micron-scale electronic threads to read neuron firing commands directly from the brain."
+        },
+
+        // Mind Riddles
+        {
+            id: 31,
+            text: "What has keys but open no locks, has space but no room, and you can enter but never go inside?",
+            options: ["A Keyboard", "A Book", "A Map", "A Piano"],
+            correctOptionIndex: 0,
+            category: "Mind Riddles",
+            difficulty: "Easy",
+            explanation: "A standard keyboard contains character keys, a space bar space, and an Enter command key."
+        },
+        {
+            id: 32,
+            text: "I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?",
+            options: ["A Ghost", "An Echo", "A Shadow", "A Cloud"],
+            correctOptionIndex: 1,
+            category: "Mind Riddles",
+            difficulty: "Medium",
+            explanation: "An echo repeats sound vibrations when sound waves bounce off hard physical canyon structures."
+        },
+        {
+            id: 33,
+            text: "Brothers and sisters I have none, but this man's father is my father's son. Who is in the photo?",
+            options: ["The speaker's father", "The speaker himself", "The speaker's son", "The speaker's cousin"],
+            correctOptionIndex: 2,
+            category: "Mind Riddles",
+            difficulty: "Hard",
+            explanation: "'My father's son' with no siblings means the speaker himself. Thus 'This man's father is me' proves it's his son."
+        }
+    ];
+
+    // 2. Local State variables
+    let userName = "QuizExplorer";
+    let selectedCategory = null; // null means 'All Themes'
+    let selectedDifficulty = "Any";
+    let selectedQuizLength = 5;
+
+    let activeQuestions = [];
+    let currentQuestionIndex = 0;
+    let selectedOptionIndex = null;
+    let isAnswerChecked = false;
+    let correctAnswersCount = 0;
+    let answersHistory = []; // list of { question, pickedOptionIndex }
+    let secondsRemaining = 15;
+    let timerInterval = null;
+
+    // Persistent storage stats defaults
+    let statPlayed = 0;
+    let statCorrect = 0;
+    let statTotalQuestions = 0;
+
+    // 3. UI Selectors
+    const screenLogin = document.getElementById('screen-login');
+    const screenHome = document.getElementById('screen-home');
+    const screenPlaying = document.getElementById('screen-playing');
+    const screenResults = document.getElementById('screen-results');
+
+    // Login screen bindings
+    const inputUsername = document.getElementById('login-username');
+    const inputPassword = document.getElementById('login-password');
+    const btnLogin = document.getElementById('btn-login');
+
+    // Home screen bindings
+    const spanDisplayName = document.getElementById('user-display-name');
+    const categoriesContainer = document.getElementById('categories-container');
+    const diffTabs = document.querySelectorAll('[data-diff]');
+    const lengthTabs = document.querySelectorAll('[data-len]');
+    const btnLaunchQuiz = document.getElementById('btn-launch-quiz');
+    const btnClearStats = document.getElementById('btn-clear-stats');
+
+    // Stat dashboard items
+    const textStatPlayed = document.getElementById('stat-played');
+    const textStatCorrect = document.getElementById('stat-correct');
+    const fillStatAccuracy = document.getElementById('stat-accuracy-fill');
+    const textStatAccuracy = document.getElementById('stat-accuracy-text');
+
+    // Playing interface bindings
+    const badgeCategory = document.getElementById('play-category-badge');
+    const badgeDifficulty = document.getElementById('play-difficulty-badge');
+    const textProgress = document.getElementById('question-progress-text');
+    const clockTimer = document.getElementById('timer-clock');
+    const progressFill = document.getElementById('progress-line');
+    const textQuestion = document.getElementById('playing-question-text');
+    const choicesContainer = document.getElementById('choices-container');
+    const cardExplanation = document.getElementById('explanation-card');
+    const textExplanation = document.getElementById('explanation-text');
+    const btnNext = document.getElementById('btn-next-question');
+    const btnNextText = document.getElementById('btn-next-text');
+
+    // Summary screen bindings
+    const resultGradePhrase = document.getElementById('result-grade-phrase');
+    const resultGradeSubtext = document.getElementById('result-grade-subtext');
+    const resultScoreRatio = document.getElementById('result-score-ratio');
+    const resultRingFill = document.getElementById('result-ring-fill');
+    const reviewsListContainer = document.getElementById('reviews-list-container');
+    const btnRestartQuiz = document.getElementById('btn-restart-quiz');
+
+    // 4. Initialization Logic
+    window.addEventListener('DOMContentLoaded', () => {
+        loadStatsFromLocalStorage();
+        renderCategories();
+        setupEventListeners();
+    });
+
+    function navigateToScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(scr => {
+            scr.classList.remove('active');
+        });
+        const targetScreen = document.getElementById(screenId);
+        targetScreen.classList.add('active');
+    }
+
+    // Load custom persistence stats
+    function loadStatsFromLocalStorage() {
+        statPlayed = parseInt(localStorage.getItem('quiz_played') || '0', 10);
+        statCorrect = parseInt(localStorage.getItem('quiz_correct') || '0', 10);
+        statTotalQuestions = parseInt(localStorage.getItem('quiz_total_questions') || '0', 10);
+        userName = localStorage.getItem('quiz_username') || "QuizExplorer";
+
+        textStatPlayed.textContent = statPlayed;
+        textStatCorrect.textContent = statCorrect;
+        
+        let accuracyVal = 0;
+        if (statTotalQuestions > 0) {
+            accuracyVal = Math.round((statCorrect / statTotalQuestions) * 100);
+        }
+        textStatAccuracy.textContent = accuracyVal + "%";
+
+        // Draw radial ring progress (offset 220 full track)
+        const offsetDash = 220 - (accuracyVal / 100) * 220;
+        fillStatAccuracy.style.strokeDashoffset = offsetDash;
+    }
+
+    // Save persistence stats to memory
+    function saveStatsToLocalStorage(addedCorrect, addedTotal) {
+        statPlayed += 1;
+        statCorrect += addedCorrect;
+        statTotalQuestions += addedTotal;
+
+        localStorage.setItem('quiz_played', statPlayed);
+        localStorage.setItem('quiz_correct', statCorrect);
+        localStorage.setItem('quiz_total_questions', statTotalQuestions);
+
+        loadStatsFromLocalStorage();
+    }
+
+    // Render Categories selection
+    function renderCategories() {
+        categoriesContainer.innerHTML = '';
+        
+        // Render Mixed All Themes category
+        const allBadge = document.createElement('div');
+        allBadge.className = `badge-chip ${selectedCategory === null ? 'selected' : ''}`;
+        allBadge.innerHTML = `<span>All Themes 🌐</span>`;
+        allBadge.addEventListener('click', () => {
+            selectedCategory = null;
+            renderCategories();
+        });
+        categoriesContainer.appendChild(allBadge);
+
+        // Render themed category chips
+        categories.forEach(cat => {
+            const isSelected = selectedCategory === cat;
+            const emoji = getCategoryEmoji(cat);
+            const badge = document.createElement('div');
+            badge.className = `badge-chip ${isSelected ? 'selected' : ''}`;
+            badge.innerHTML = `<span>${cat} ${emoji}</span>`;
+            badge.addEventListener('click', () => {
+                selectedCategory = cat;
+                renderCategories();
+            });
+            categoriesContainer.appendChild(badge);
+        });
+    }
+
+    function getCategoryEmoji(cat) {
+        switch (cat) {
+            case "Cosmos & Science": return "🌌";
+            case "Global Geography": return "🌍";
+            case "World History": return "📜";
+            case "Future Tech": return "🤖";
+            case "Pop Culture": return "🎬";
+            case "Mind Riddles": return "🧩";
+            default: return "⚡";
+        }
+    }
+
+    // Event Listener setup
+    function setupEventListeners() {
+        // Authenticate login transition
+        btnLogin.addEventListener('click', () => {
+            const enteredUser = inputUsername.value.trim();
+            if (!enteredUser) {
+                alert("Please enter a valid explorer handle!");
+                return;
+            }
+            userName = enteredUser;
+            localStorage.setItem('quiz_username', userName);
+            spanDisplayName.textContent = userName.toUpperCase();
+
+            // Transition
+            navigateToScreen('screen-home');
+        });
+
+        // Difficulty selectors tabs
+        diffTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                diffTabs.forEach(t => t.classList.remove('selected'));
+                tab.classList.add('selected');
+                selectedDifficulty = tab.getAttribute('data-diff');
+            });
+        });
+
+        // Length selectors tabs
+        lengthTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                lengthTabs.forEach(t => t.classList.remove('selected'));
+                tab.classList.add('selected');
+                selectedQuizLength = parseInt(tab.getAttribute('data-len'), 10);
+            });
+        });
+
+        // Delete high-scores
+        btnClearStats.addEventListener('click', () => {
+            if (confirm("Confirm erasing all lifetime records?")) {
+                localStorage.clear();
+                loadStatsFromLocalStorage();
+            }
+        });
+
+        // Game trigger click
+        btnLaunchQuiz.addEventListener('click', () => {
+            launchQuizEngine();
+        });
+
+        // Continuous gameplay controls
+        btnNext.addEventListener('click', () => {
+            nextQuestionStep();
+        });
+
+        // Return to command cockpit
+        btnRestartQuiz.addEventListener('click', () => {
+            navigateToScreen('screen-home');
+        });
+    }
+
+    // Launch playing generator
+    function launchQuizEngine() {
+        // Filter queries
+        let pool = allQuestions.filter(q => {
+            const matchesCat = (selectedCategory === null) || (q.category === selectedCategory);
+            const matchesDiff = (selectedDifficulty === "Any") || (q.difficulty === selectedDifficulty);
+            return matchesCat && matchesDiff;
+        });
+
+        // Supplement queries with others if low matched count
+        if (pool.length < selectedQuizLength) {
+            const extraPool = allQuestions.filter(q => !pool.includes(q));
+            pool = pool.concat(extraPool);
+        }
+
+        // Shuffle and take requested count
+        pool.sort(() => Math.random() - 0.5);
+        activeQuestions = pool.slice(0, selectedQuizLength);
+
+        // Reset runtime values
+        currentQuestionIndex = 0;
+        correctAnswersCount = 0;
+        answersHistory = [];
+        selectedOptionIndex = null;
+        isAnswerChecked = false;
+
+        loadQuestionPlayboard();
+        navigateToScreen('screen-playing');
+    }
+
+    // Bind current active question cards and choices
+    function loadQuestionPlayboard() {
+        clearInterval(timerInterval);
+        
+        const question = activeQuestions[currentQuestionIndex];
+        if (!question) return;
+
+        badgeCategory.textContent = question.category;
+        badgeDifficulty.textContent = "DIFFICULTY: " + question.difficulty;
+        textProgress.textContent = `QUESTION ${currentQuestionIndex + 1} OF ${activeQuestions.length}`;
+        textQuestion.textContent = question.text;
+
+        // Reset progress bar percentage
+        const perc = ((currentQuestionIndex + 1) / activeQuestions.length) * 100;
+        progressFill.style.width = perc + "%";
+
+        // Draw multiple choice options
+        choicesContainer.innerHTML = '';
+        selectedOptionIndex = null;
+        isAnswerChecked = false;
+
+        question.options.forEach((opt, idx) => {
+            const row = document.createElement('div');
+            row.className = 'choice-row';
+            row.innerHTML = `
+                <div class="choice-left">
+                    <div class="choice-badge">${String.fromCharCode(65 + idx)}</div>
+                    <span class="choice-txt">${opt}</span>
+                </div>
+            `;
+            
+            row.addEventListener('click', () => {
+                if (isAnswerChecked) return;
+                evaluateAnswerInput(idx);
+            });
+
+            choicesContainer.appendChild(row);
+        });
+
+        // Hide explanation
+        cardExplanation.style.display = 'none';
+        btnNext.setAttribute('disabled', 'true');
+
+        // Reset buttons display
+        if (currentQuestionIndex === activeQuestions.length - 1) {
+            btnNextText.textContent = "SUMMARIZE PERFORMANCE";
+        } else {
+            btnNextText.textContent = "NEXT CHALLENGE";
+        }
+
+        // Start countdown ticked down
+        secondsRemaining = 15;
+        clockTimer.textContent = secondsRemaining;
+        clockTimer.className = "round-clock";
+
+        timerInterval = setInterval(() => {
+            secondsRemaining -= 1;
+            clockTimer.textContent = secondsRemaining;
+
+            if (secondsRemaining <= 10 && secondsRemaining > 4) {
+                clockTimer.className = "round-clock warning";
+            } else if (secondsRemaining <= 4) {
+                clockTimer.className = "round-clock critical";
+            }
+
+            if (secondsRemaining <= 0) {
+                clearInterval(timerInterval);
+                evaluateAnswerInput(null); // Force Timeout
+            }
+        }, 1000);
+    }
+
+    // Process correctness on selection
+    function evaluateAnswerInput(pickedIdx) {
+        clearInterval(timerInterval);
+        if (isAnswerChecked) return;
+
+        isAnswerChecked = true;
+        selectedOptionIndex = pickedIdx;
+        const question = activeQuestions[currentQuestionIndex];
+        const correctIdx = question.correctOptionIndex;
+
+        // Record choices review
+        answersHistory.push({
+            question: question,
+            pickedIndex: pickedIdx
+        });
+
+        // Sound trigger emulation or haptic highlighting
+        const children = choicesContainer.children;
+        
+        // Highlight correct options & wrong selections
+        for (let i = 0; i < children.length; i++) {
+            if (i === correctIdx) {
+                children[i].classList.add('correct');
+            }
+            if (pickedIdx !== null && i === pickedIdx && pickedIdx !== correctIdx) {
+                children[i].classList.add('incorrect');
+            }
+        }
+
+        if (pickedIdx === correctIdx) {
+            correctAnswersCount += 1;
+        }
+
+        // Display trivia card feedback
+        textExplanation.textContent = question.explanation;
+        cardExplanation.style.display = 'flex';
+        btnNext.removeAttribute('disabled');
+    }
+
+    // Step continuous query pages
+    function nextQuestionStep() {
+        if (currentQuestionIndex < activeQuestions.length - 1) {
+            currentQuestionIndex += 1;
+            loadQuestionPlayboard();
+        } else {
+            // End challenge, compile highscores
+            saveStatsToLocalStorage(correctAnswersCount, activeQuestions.length);
+            summarizeResultsPanel();
+        }
+    }
+
+    // Formulate final statistics screen
+    function summarizeResultsPanel() {
+        const total = activeQuestions.length;
+        const accuracy = Math.round((correctAnswersCount / total) * 100);
+
+        // Grade quotes
+        let gradeText = "";
+        let gradeSub = "";
+        if (accuracy === 100) {
+            gradeText = "UNSTOPPABLE MASTERMIND! 🌟";
+            gradeSub = "You answered every single query flawlessly!";
+        } else if (accuracy >= 80) {
+            gradeText = "SCHOLARLY GENIUS! 🎓";
+            gradeSub = "Exceptional accuracy and mental swiftness!";
+        } else if (accuracy >= 50) {
+            gradeText = "SHARP MIND! 🧭";
+            gradeSub = "Great attempt! A bit more focus and you're there.";
+        } else {
+            gradeText = "NOVICE APPRENTICE! 📖";
+            gradeSub = "Take it slow, review the slides, and try again!";
+        }
+
+        resultGradePhrase.textContent = gradeText;
+        resultGradeSubtext.textContent = gradeSub;
+        resultScoreRatio.textContent = `${correctAnswersCount} / ${total}`;
+
+        // Fill circle gauge
+        const offsetDash = 260 - (accuracy / 100) * 260; // 260 is full stroke svg track
+        resultRingFill.style.strokeDashoffset = offsetDash;
+
+        // Populate card elements list exam reviews
+        reviewsListContainer.innerHTML = '';
+        answersHistory.forEach((item, index) => {
+            const q = item.question;
+            const chosen = item.pickedIndex;
+            const isCorrect = (chosen === q.correctOptionIndex);
+
+            const rev = document.createElement('div');
+            rev.className = `review-card ${isCorrect ? 'correct' : 'incorrect'}`;
+            rev.innerHTML = `
+                <div class="review-meta">
+                    <span class="review-category">${q.category.toUpperCase()}</span>
+                    <span class="review-badge ${isCorrect ? 'correct' : 'incorrect'}">${isCorrect ? 'CORRECT' : 'INCORRECT'}</span>
+                </div>
+                <div class="review-title">${q.text}</div>
+                <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
+                    <div class="review-choice-item ${isCorrect ? 'correct-pick' : 'wrong-pick'}">
+                        <div class="review-bullet ${isCorrect ? 'correct-pick' : 'wrong-pick'}"></div>
+                        <span>Your Pick: ${chosen !== null ? q.options[chosen] : 'Timed Out ⌛'}</span>
+                    </div>
+                    ${!isCorrect ? `
+                        <div class="review-choice-item correct-pick">
+                            <div class="review-bullet correct-pick"></div>
+                            <span>Correct Choice: ${q.options[q.correctOptionIndex]}</span>
+                        </div>
+                    ` : ''}
+                </div>
+                <div style="height: 1px; background-color: var(--border-color); margin: 8px 0;"></div>
+                <div style="display: flex; gap: 6px; align-items: flex-start;">
+                    <div style="color: var(--accent-cyan); font-size: 13px;">ℹ</div>
+                    <span style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">${q.explanation}</span>
+                </div>
+            `;
+            reviewsListContainer.appendChild(rev);
+        });
+
+        navigateToScreen('screen-results');
+    }
+</script>
+</body>
+</html>

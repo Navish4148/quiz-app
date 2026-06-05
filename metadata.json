@@ -1,0 +1,6 @@
+{
+  "name": "Quiz App",
+  "description": "A premium, attractive and powerful offline quiz app featuring visual countdowns, diverse trivia categories, scoring reviews, and local high-score persistence.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
